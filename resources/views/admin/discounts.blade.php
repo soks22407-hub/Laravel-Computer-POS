@@ -1,0 +1,199 @@
+@extends('layouts.admin')
+@section('content')
+<style>
+    .dis-id {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        transition: background 0.2s ease;
+        cursor: pointer;
+    }
+
+    .dis-id:hover {
+        background-color: #f5f5f5;
+        cursor: pointer;
+    }
+
+    .box-content-search {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 999;
+        background: #fff;
+        border-radius: 4px;
+        width: 100%;
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 4px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+
+    #box-content-search li {
+        list-style: none;
+    }
+
+    #box-content-search .dis-id {
+        margin-bottom: 10px;
+    }
+</style>
+<div class="main-content-inner">
+    <div class="main-content-wrap">
+        <div class="flex items-center flex-wrap justify-between gap20 mb-0" style="padding: 5px 0; margin-top: 0;">
+            <h3>Discounts</h3>
+            <ul class="breadcrumbs flex items-center flex-wrap justify-start gap10">
+                <li>
+                    <a href="{{route ('admin.index')}}">
+                        <div class="text-tiny">Dashboard</div>
+                    </a>
+                </li>
+                <li>
+                    <i class="icon-chevron-right"></i>
+                </li>
+                <li>
+                    <div class="text-tiny">Discounts</div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="wg-box">
+            <div class="flex items-center justify-between gap10 flex-wrap">
+                <div class="wg-filter flex-grow">
+                    <form class="form-search flex-grow" method="GET">
+                        <fieldset class="name">
+                            <input type="text" placeholder="Search here..." class="show-search" name="name" id="dis-search-input"
+                                tabindex="2" value="{{ request('name') }}" aria-required="true" required="" data-search-url="{{ route('admin.search.discount') }}" autocomplete="off">
+                        </fieldset>
+                        <div class="button-submit">
+                            <button class="" type="submit"><i class="icon-search"></i></button>
+                        </div>
+                        <div class="box-content-search">
+                            <ul id="dis-box-content-search"></ul>
+                        </div>
+                    </form>
+                </div>
+                <a class="tf-button style-1 w208" href="{{ route('admin.discount.add') }}"><i
+                        class="icon-plus"></i>Add new</a>
+            </div>
+            <div class="wg-table table-all-user">
+                <div class="table-responsive">
+                    @if (Session::has('status'))
+                    <p class="alert alert-success">{{Session::get('status')}}</p>
+                    @endif
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">#</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Value</th>
+                                <th>Min Amount</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($discounts as $discount)
+                            <tr>
+                                <td>{{ $discounts->firstItem() + $loop->index }}</td>
+                                <td>{{ $discount -> name }}</td>
+                                <td>{{ $discount -> type }}</td>
+                                <td>{{ $discount -> value }}</td>
+                                <td>${{ $discount -> min_amount }}</td>
+                                <td>{{ $discount -> start_date }}</td>
+                                <td>{{ $discount -> end_date }}</td>
+                                <td>
+                                    <div class="list-icon-function">
+                                        <a href="{{route('admin.discount.edit', ['id'=>$discount->id])}}">
+                                            <div class="item edit">
+                                                <i class="icon-edit-3"></i>
+                                            </div>
+                                        </a>
+                                        <form action="{{route('admin.discount.delete', ['id'=>$discount->id])}}" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <div class="item text-danger delete">
+                                                <i class="icon-trash-2"></i>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="divider"></div>
+            <div class="flex items-center justify-between flex-wrap gap10 wgp-pagination">
+                {{ $discounts->links('pagination::bootstrap-5') }}
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+@push('scripts')
+<script>
+    $(function() {
+        $(".delete").on("click", function(e) {
+            e.preventDefault();
+            var form = $(this).closest('form');
+            swal({
+                title: "Are you sure ?",
+                text: "Do you want to delete this record ?",
+                type: "warning",
+                buttons: ["No", "Yes"],
+                confirmButtonColor: '#dc3545'
+            }).then(function(result) {
+                if (result) {
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    $(function() {
+        $("#dis-search-input").on("keyup", function() {
+            var searchQuery = $(this).val();
+            if (searchQuery.length > 2) {
+                $.ajax({
+                    type: "GET",
+                    url: "{{route('admin.search.discount')}}",
+                    data: {
+                        query: searchQuery
+                    },
+                    dataType: 'json',
+                    success: function(data) {
+                        $("#dis-box-content-search").html('');
+                        $.each(data, function(index, discount) {
+                            var url = "{{route('admin.discount.edit', ['id' => 'dis_id'])}}";
+                            var link = url.replace('dis_id', discount.id);
+
+                            const safeName = $('<div>').text(discount.name).html();
+
+                            $("#dis-box-content-search").append(`
+                                    <li class="dis-id">  
+                                    <a href="${link}" class="d-flex items-center gap14 mb-10"> 
+                                        <div class="flex items-center justify-between gap20 flex-grow">
+                                            <div class="name">
+                                                <span class="body-text">${safeName}</span>
+                                            </div>
+                                        </div>
+                                    </a>
+                                    </li>
+                                    <li>
+                                    <div class="divider"></div>
+                                    </li>
+                                `);
+                        });
+                    }
+                });
+            } else {
+                $("#dis-box-content-search").html('');
+            }
+        });
+    });
+</script>
+@endpush
